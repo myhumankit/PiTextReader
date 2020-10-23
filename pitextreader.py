@@ -27,7 +27,27 @@ import logging
 import subprocess
 import threading
 import time 
+from pygame import mixer
+from rpi_ws281x import ws, Color, Adafruit_NeoPixel
 
+# LED strip configuration:
+LED_1_COUNT = 30        # Number of LED pixels.
+LED_1_PIN = 18          # GPIO pin connected to the pixels (must support PWM! GPIO 13 and 18 on RPi 3).
+LED_1_FREQ_HZ = 800000  # LED signal frequency in hertz (usually 800khz)
+LED_1_DMA = 10          # DMA channel to use for generating signal (Between 1 and 14)
+LED_1_BRIGHTNESS = 128  # Set to 0 for darkest and 255 for brightest
+LED_1_INVERT = False    # True to invert the signal (when using NPN transistor level shift)
+LED_1_CHANNEL = 0       # 0 or 1
+LED_1_STRIP = ws.WS2811_STRIP_GRB
+
+LED_2_COUNT = 15        # Number of LED pixels.
+LED_2_PIN = 13          # GPIO pin connected to the pixels (must support PWM! GPIO 13 or 18 on RPi 3).
+LED_2_FREQ_HZ = 800000  # LED signal frequency in hertz (usually 800khz)
+LED_2_DMA = 11          # DMA channel to use for generating signal (Between 1 and 14)
+LED_2_BRIGHTNESS = 128  # Set to 0 for darkest and 255 for brightest
+LED_2_INVERT = False    # True to invert the signal (when using NPN transistor level shift)
+LED_2_CHANNEL = 1       # 0 or 1
+LED_2_STRIP = ws.WS2811_STRIP_GRB
 
 ##### USER VARIABLES
 DEBUG   = 0 # Debug 0/1 off/on (writes to debug.log)
@@ -62,6 +82,18 @@ class RaspberryThread(threading.Thread):
     def stop(self):
         self.running = False 
 
+# NEOPIXELS INIT
+strip1 = Adafruit_NeoPixel(LED_1_COUNT, LED_1_PIN, LED_1_FREQ_HZ,
+                               LED_1_DMA, LED_1_INVERT, LED_1_BRIGHTNESS,
+                               LED_1_CHANNEL, LED_1_STRIP)
+
+strip2 = Adafruit_NeoPixel(LED_2_COUNT, LED_2_PIN, LED_2_FREQ_HZ,
+                               LED_2_DMA, LED_2_INVERT, LED_2_BRIGHTNESS,
+                               LED_2_CHANNEL, LED_2_STRIP)
+
+# Intialize the library (must be called once before other functions).
+strip1.begin()
+strip2.begin()
 # LED ON/OFF
 def led(val):   
     logger.info('led('+str(val)+')') 
@@ -84,6 +116,8 @@ def speak(val): # TTS Speak
     logger.info('speak()') 
     cmd = "/usr/bin/flite -voice awb --setf duration_stretch="+str(SPEED)+" -t \""+str(val)+"\""
     logger.info(cmd) 
+    cmd = 'spd-say -l fr "%s"' % str(val)
+    logger.info(cmd)
     os.system(cmd)
     return 
 
@@ -108,7 +142,7 @@ def cleanText():
 def playTTS():
     logger.info('playTTS()') 
     global current_tts
-    current_tts=subprocess.Popen(['/usr/bin/flite','-voice','awb','-f', '/tmp/text.txt'],
+    current_tts=subprocess.Popen(['sh', '/home/pi/say.sh'],
         stdin=subprocess.PIPE,stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,close_fds=True)
     # Kick off stop audio thread 
@@ -134,6 +168,12 @@ def getData():
     logger.info('getData()') 
     led(0) # Turn off Button LED
 
+    # switch on white leds
+    for i in range(strip1.numPixels()):
+        strip1.setPixelColor(i, Color(255, 255, 255))
+        strip2.setPixelColor(i, Color(255, 255, 255))
+    strip1.show()
+    strip2.show()
     # Take photo
     sound(SOUNDS+"camera-shutter.wav")
     cmd = CAMERA
@@ -141,11 +181,39 @@ def getData():
     os.system(cmd)
 
     # OCR to text
-    speak("now working. please wait.")
-    cmd = "/usr/bin/tesseract /tmp/image.jpg /tmp/text"
-    logger.info(cmd) 
+    speak("now working. attendez s'il vous plait.")
+    cmd = "/usr/bin/tesseract /tmp/image.jpg /tmp/text --psm 1"
+    logger.info(cmd)
+    # play song
+    mixer.init()
+    mixer.music.load('orange.mp3')
+    # Disco
+    for i in range(strip1.numPixels()):
+        if i % 2:
+            # even number
+            strip1.setPixelColor(i, Color(205, 90, 10))
+            strip2.setPixelColor(i / 2, Color(205, 90, 10))
+            strip1.show()
+            time.sleep(5 / 1000.0)
+            strip2.show()
+            time.sleep(5 / 1000.0)
+        else:
+            # odd number
+            strip1.setPixelColor(i, Color(205, 90, 10))
+            strip1.show()
+            time.sleep(5 / 1000.0)
     os.system(cmd)
     
+
+    # black everywhere
+    for i in range(strip1.numPixels()):
+        strip1.setPixelColor(i, Color(0, 0, 0))
+        strip2.setPixelColor(i, Color(0, 0, 0))
+    strip1.show()
+    strip2.show()
+
+    # stop song
+    mixer.music.stop()
     # Cleanup text
     cleanText()
 
@@ -176,16 +244,17 @@ try:
     # Setup GPIO buttons
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings (False)
-     
-    GPIO.setup(BTN1, GPIO.IN, pull_up_down=GPIO.PUD_UP) 
-    GPIO.setup(LED, GPIO.OUT) 
-    
+
+    GPIO.setup(BTN1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(LED, GPIO.OUT)
+
     # Threaded audio player
     #rt = RaspberryThread( function = repeatTTS ) # Repeat Speak text
     rt = RaspberryThread( function = stopTTS ) # Stop Speaking text
     
     volume(VOLUME)
     speak("OK, ready")
+    speak("OK, on est pret")
     led(1)
     
     while True:
@@ -195,10 +264,9 @@ try:
             rt.stop()
             rt = RaspberryThread( function = stopTTS ) # Stop Speaking text
             led(1)
-            time.sleep(0.5)  
-            speak("OK, ready")
-        time.sleep(0.2)  
-    
+            time.sleep(0.5)
+            speak("OK, on est pret")
+        time.sleep(0.2)
 except KeyboardInterrupt:
     logger.info("exiting")
 
