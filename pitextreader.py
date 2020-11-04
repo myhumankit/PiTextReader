@@ -28,7 +28,7 @@ import subprocess
 import threading
 import time
 from pygame import mixer
-from rpi_ws281x import ws, Color, Adafruit_NeoPixel
+# from rpi_ws281x import ws, Color, Adafruit_NeoPixel
 
 # LED strip configuration:
 LED_1_COUNT = 30        # Number of LED pixels.
@@ -38,7 +38,7 @@ LED_1_DMA = 10          # DMA channel to use for generating signal (Between 1 an
 LED_1_BRIGHTNESS = 128  # Set to 0 for darkest and 255 for brightest
 LED_1_INVERT = False    # True to invert the signal (when using NPN transistor level shift)
 LED_1_CHANNEL = 0       # 0 or 1
-LED_1_STRIP = ws.WS2811_STRIP_GRB
+# LED_1_STRIP = ws.WS2811_STRIP_GRB
 
 LED_2_COUNT = 15        # Number of LED pixels.
 LED_2_PIN = 13          # GPIO pin connected to the pixels (must support PWM! GPIO 13 or 18 on RPi 3).
@@ -47,7 +47,7 @@ LED_2_DMA = 11          # DMA channel to use for generating signal (Between 1 an
 LED_2_BRIGHTNESS = 128  # Set to 0 for darkest and 255 for brightest
 LED_2_INVERT = False    # True to invert the signal (when using NPN transistor level shift)
 LED_2_CHANNEL = 1       # 0 or 1
-LED_2_STRIP = ws.WS2811_STRIP_GRB
+# LED_2_STRIP = ws.WS2811_STRIP_GRB
 
 ##### USER VARIABLES
 DEBUG   = 0 # Debug 0/1 off/on (writes to debug.log)
@@ -61,6 +61,11 @@ CAMERA  = "raspistill -cfx 128:128 --awb auto -rot 180 -t 500 -o /tmp/image.jpg"
 # GPIO BUTTONS
 BTN1    = 24    # The button!
 LED     = 18    # The button's LED!
+
+
+# TEXT READING CMD
+ESPEAK_VOICE = "mb/mb-fr4"
+ESPEAK_CMD = ["/usr/bin/espeak-ng", "-v", ESPEAK_VOICE, "-f", "/tmp/text.txt", "&"]
 
 ### FUNCTIONS
 # Thread controls for background processing
@@ -82,17 +87,18 @@ class RaspberryThread(threading.Thread):
         self.running = False
 
 # NEOPIXELS INIT
-strip1 = Adafruit_NeoPixel(LED_1_COUNT, LED_1_PIN, LED_1_FREQ_HZ,
-                               LED_1_DMA, LED_1_INVERT, LED_1_BRIGHTNESS,
-                               LED_1_CHANNEL, LED_1_STRIP)
+# strip1 = Adafruit_NeoPixel(LED_1_COUNT, LED_1_PIN, LED_1_FREQ_HZ,
+#                                LED_1_DMA, LED_1_INVERT, LED_1_BRIGHTNESS,
+#                                LED_1_CHANNEL, LED_1_STRIP)
 
-strip2 = Adafruit_NeoPixel(LED_2_COUNT, LED_2_PIN, LED_2_FREQ_HZ,
-                               LED_2_DMA, LED_2_INVERT, LED_2_BRIGHTNESS,
-                               LED_2_CHANNEL, LED_2_STRIP)
+# strip2 = Adafruit_NeoPixel(LED_2_COUNT, LED_2_PIN, LED_2_FREQ_HZ,
+#                                LED_2_DMA, LED_2_INVERT, LED_2_BRIGHTNESS,
+#                                LED_2_CHANNEL, LED_2_STRIP)
 
-# Intialize the library (must be called once before other functions).
-strip1.begin()
-strip2.begin()
+# # Intialize the library (must be called once before other functions).
+# strip1.begin()
+# strip2.begin()
+
 
 # LED ON/OFF
 def led(val):
@@ -141,7 +147,7 @@ def cleanText():
 def playTTS():
     logger.info('playTTS()')
     global current_tts
-    current_tts=subprocess.Popen(['sh', '/home/pi/say.sh'],
+    current_tts=subprocess.Popen(ESPEAK_CMD,
         stdin=subprocess.PIPE,stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,close_fds=True)
     # Kick off stop audio thread
@@ -167,12 +173,12 @@ def getData():
     logger.info('getData()')
     led(0) # Turn off Button LED
 
-    # switch on white leds
-    for i in range(strip1.numPixels()):
-        strip1.setPixelColor(i, Color(255, 255, 255))
-        strip2.setPixelColor(i, Color(255, 255, 255))
-    strip1.show()
-    strip2.show()
+    # # switch on white leds
+    # for i in range(strip1.numPixels()):
+    #     strip1.setPixelColor(i, Color(255, 255, 255))
+    #     strip2.setPixelColor(i, Color(255, 255, 255))
+    # strip1.show()
+    # strip2.show()
 
     # Take photo
     sound(SOUNDS+"camera-shutter.wav")
@@ -186,7 +192,7 @@ def getData():
     logger.info(cmd)
     # play song
     mixer.init()
-    mixer.music.load('orange.mp3')
+    mixer.music.load(SOUNDS+'orange.mp3')
     mixer.music.play()
 
     # Disco
@@ -206,11 +212,11 @@ def getData():
     # strip2.show()
 
     # black everywhere
-    for i in range(strip1.numPixels()):
-        strip1.setPixelColor(i, Color(0, 0, 0))
-        strip2.setPixelColor(i, Color(0, 0, 0))
-    strip1.show()
-    strip2.show()
+    # for i in range(strip1.numPixels()):
+    #     strip1.setPixelColor(i, Color(0, 0, 0))
+    #     strip2.setPixelColor(i, Color(0, 0, 0))
+    # strip1.show()
+    # strip2.show()
 
     # stop song
     mixer.music.stop()
@@ -222,11 +228,11 @@ def getData():
     playTTS()
 
     # green everywhere
-    for i in range(strip1.numPixels()):
-        strip1.setPixelColor(i, Color(0, 0, 0))
-        strip2.setPixelColor(i, Color(0, 0, 0))
-    strip1.show()
-    strip2.show()
+    # for i in range(strip1.numPixels()):
+    #     strip1.setPixelColor(i, Color(0, 0, 0))
+    #     strip2.setPixelColor(i, Color(0, 0, 0))
+    # strip1.show()
+    # strip2.show()
     return
 
 
