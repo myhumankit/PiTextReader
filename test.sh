@@ -15,8 +15,7 @@ sudo amixer -q sset PCM,0 ${VOLUME}
 
 # PLAY SPEECH 
 echo "playing TTS"
-flite -voice awb -t "Hello World! This is a test of text to speech."
-
+espeak-ng -v mb/mb-fr4 "Bonjour le monde ! Ceci est un test de texte vers parole"
 
 # TEST CAMERA
 echo "taking photo"
@@ -29,7 +28,7 @@ tesseract test.jpg test
 cat test.txt
 
 # SPEAK TEXT
-flite -voice awb -f test.txt
+espeak-ng -v mb/mb-fr4 -f test.txt
 
 # Run a web server to view photo
 IP=`hostname -I`

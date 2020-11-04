@@ -16,8 +16,22 @@ sudo apt-get update
 echo  
 
 # Install packages
-sudo apt-get install -y tesseract-ocr flite
+sudo apt-get install -y tesseract-ocr #flite
 
+###################
+# add config ReadForMe, mhk Fabrikarium 2020
+sudo apt-get install speech-dispatcher
+
+# rgb led strip dependency
+sudo pip install rpi_ws281x
+
+# installation mbrola
+wget http://steinerdatenbank.de/software/mbrola3.0.1h_armhf.deb
+sudo dpkg -i mbrola3.0.1h_armhf.deb
+sudo apt-get install -y mbrola-fr1
+
+# fin config ReadForMe
+###################
 
 # Verify Camera is configured
 X=`raspistill -o test.jpg 2>&1|grep Failed`
