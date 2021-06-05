@@ -9,29 +9,21 @@
 # version 20180210
 #
 
+if [ "$EUID" -ne 0 ]
+  then echo "Must run as root: 'sudo ./install.sh'"
+  exit
+fi
+
 # Make sure python requirements are installed
-sudo apt-get update
-#sudo apt-get install -y build-essential python-pip python-dev 
+apt-get -y update
+apt-get -y upgrade
+
 
 echo  
 
 # Install packages
-sudo apt-get install -y tesseract-ocr #flite
-
-###################
-# add config ReadForMe, mhk Fabrikarium 2020
-sudo apt-get install speech-dispatcher
-
-# rgb led strip dependency
-sudo pip install rpi_ws281x
-
-# installation mbrola
-wget http://steinerdatenbank.de/software/mbrola3.0.1h_armhf.deb
-sudo dpkg -i mbrola3.0.1h_armhf.deb
-sudo apt-get install -y mbrola-fr1
-
-# fin config ReadForMe
-###################
+apt-get install -y tesseract-ocr flite alsa-utils
+apt-get install -y python3-rpi.gpio python3-gpiozero
 
 # Verify Camera is configured
 X=`raspistill -o test.jpg 2>&1|grep Failed`
@@ -44,6 +36,27 @@ else
         echo "NO Camera Detected! SEE DOCS Troubleshooting section."
 	exit
 fi 
+
+# Configure asound for desktopless environment
+echo "pcm.!default {
+        type hw
+        card 0
+}
+
+ctl.!default {
+        type hw           
+        card 0
+}
+" > /home/pi/.asoundrc
+
+chown pi:pi /home/pi/.asoundrc
+
+# Power On/Off control button, enable GPIO port
+cp /boot/config.txt /boot/config.txt.bak
+echo " "  >> /boot/config.txt
+echo "# Enable power On/Off swith control ============="  >> /boot/config.txt
+echo "dtoverlay=gpio-shutdown" >> /boot/config.txt
+
 
 # Install custom software
 crontab ./cronfile

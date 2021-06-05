@@ -21,5 +21,5 @@
 # 
 # m h  dom mon dow   command
 
-@reboot python /home/pi/PiTextReader/pitextreader.py >/dev/null 2>&1 
+@reboot python3 /home/pi/PiTextReader/pitextreader.py >/dev/null 2>&1 
 
